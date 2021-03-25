@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import messagebox
 import pyperclip
+import json
 
 FONT = "Arial"
 
@@ -35,20 +36,48 @@ def generate_pass():
 
 def save():
 
-    website = webentry.get()
+    website = webentry.get().lower()
     password = passentry.get()
     email = userentry.get()
+    new_data = {website:{
+        "email":email,
+        "password":password
+    }}
     if len(website)==0 or len(password)==0 or len(email)==0:
         messagebox.showinfo(title="Error", message="Please make sure none of the inputs are empty")
     else:
         is_ok = messagebox.askokcancel(title=website, message=f"These are the details entered: \nEmail: {email} \nPassword: {password} \nIs it okay?")
 
         if is_ok:
-            with open("data.txt", mode="a") as file:
-                file.write(f"{website} | {email} | {password} \n")
+            try:
+                with open("data.json", mode="r") as file:
+                    data = json.load(file)
+                    data.update(new_data)
+            except FileNotFoundError:
+                with open("data.json", mode="w") as file:
+                    json.dump(new_data, file, indent=4)
+
+            else:
+                with open("data.json", mode="w") as file:
+                    json.dump(data,file,indent=4)
 
             webentry.delete(0,END)
             passentry.delete(0, END)
+
+# ---------------------------- Search ------------------------------- #
+
+def search():
+    website = webentry.get().lower()
+    try:
+        with open("data.json") as file:
+            data = json.load(file)
+            result = data[website]
+            messagebox.showinfo(title=website.title(), message=f"The credentials for {website.title()} are \nEmail: {result['email']}\nPassword: {result['password']}")
+
+    except FileNotFoundError:
+        messagebox.showinfo(title="Error", message="No data file found")
+    except KeyError:
+        messagebox.showinfo(title="Error", message="No such data found")
 
 
 
@@ -68,9 +97,12 @@ canvas.grid(column=0,row=0,columnspan=3)
 weblabel = Label(text="Website : ",font=(FONT,12,"normal"),pady=5,padx=0)
 weblabel.grid(column=0,row=1)
 
-webentry = Entry(width=50)
+webentry = Entry(width=30)
 webentry.grid(column=1,row=1,columnspan=2,sticky="W")
 webentry.focus()
+
+searchBtn = Button(text="Search", highlightthickness=0,width=15,pady=5, command=search)
+searchBtn.grid(column=2,row=1)
 # Email name
 
 userlabel = Label(text="Email/Username : ",font=(FONT,12,"normal"),pady=5)
